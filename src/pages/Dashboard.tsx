@@ -1,40 +1,126 @@
-import React from 'react';
+import React, { useEffect, useState } from "react";
+
+interface Robot {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+  battery: number | null;
+}
 
 export default function Dashboard() {
+  const [robots, setRobots] = useState<Robot[]>([]);
+  const [newName, setNewName] = useState("");
+  const [newType, setNewType] = useState("drone");
+
+  useEffect(() => {
+    const stored = localStorage.getItem("robots");
+    if (stored) {
+      setRobots(JSON.parse(stored));
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("robots", JSON.stringify(robots));
+  }, [robots]);
+
+  const addRobot = () => {
+    const newRobot: Robot = {
+      id: crypto.randomUUID(),
+      name: newName || `Robot ${robots.length + 1}`,
+      type: newType,
+      status: "idle",
+      battery: Math.floor(Math.random() * 100),
+    };
+    setRobots([...robots, newRobot]);
+    setNewName("");
+    setNewType("drone");
+  };
+
+  const deleteRobot = (id: string) => {
+    setRobots(robots.filter((r) => r.id !== id));
+  };
+
+  const updateRobotName = (id: string, name: string) => {
+    setRobots(robots.map((r) => (r.id === id ? { ...r, name } : r)));
+  };
+
   return (
     <div className="flex min-h-screen">
-      {/* Sidebar */}
       <aside className="w-64 bg-gray-800 text-white p-4 space-y-4">
         <h1 className="text-2xl font-bold mb-6">Robodyne</h1>
         <nav className="space-y-2">
-          <button className="block w-full text-left hover:bg-gray-700 p-2 rounded">Dashboard</button>
-          <button className="block w-full text-left hover:bg-gray-700 p-2 rounded">Robots</button>
-          <button className="block w-full text-left hover:bg-gray-700 p-2 rounded">Code</button>
-          <button className="block w-full text-left hover:bg-gray-700 p-2 rounded">Control</button>
-          <button className="block w-full text-left hover:bg-gray-700 p-2 rounded">Planner</button>
-          <button className="block w-full text-left hover:bg-gray-700 p-2 rounded">Logs</button>
-          <button className="block w-full text-left hover:bg-gray-700 p-2 rounded">Settings</button>
+          {[
+            "Dashboard",
+            "Robots",
+            "Code",
+            "Control",
+            "Planner",
+            "Logs",
+            "Settings",
+          ].map((tab) => (
+            <button
+              key={tab}
+              className="block w-full text-left hover:bg-gray-700 p-2 rounded"
+            >
+              {tab}
+            </button>
+          ))}
         </nav>
       </aside>
 
-      {/* Main content */}
       <main className="flex-1 p-6 bg-gray-100">
         <h2 className="text-2xl font-semibold mb-4">Connected Robots</h2>
+
+        <div className="flex gap-2 mb-4">
+          <input
+            type="text"
+            placeholder="Robot name"
+            className="p-2 border rounded w-full"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+          />
+          <select
+            value={newType}
+            onChange={(e) => setNewType(e.target.value)}
+            className="p-2 border rounded"
+          >
+            <option value="drone">Drone</option>
+            <option value="arm">Arm</option>
+            <option value="humanoid">Humanoid</option>
+            <option value="vacuum">Vacuum</option>
+            <option value="uav">UAV</option>
+          </select>
+          <button
+            onClick={addRobot}
+            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+          >
+            Add
+          </button>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="bg-white shadow rounded-xl p-4">
-            <h3 className="text-lg font-semibold">Drone Alpha</h3>
-            <p className="text-sm text-gray-600">Type: Drone</p>
-            <p className="text-sm text-green-600">Status: Connected</p>
-            <p className="text-sm">Battery: 89%</p>
-            <button className="mt-2 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">Details</button>
-          </div>
-          <div className="bg-white shadow rounded-xl p-4">
-            <h3 className="text-lg font-semibold">Robotic Arm 1</h3>
-            <p className="text-sm text-gray-600">Type: Arm</p>
-            <p className="text-sm text-yellow-600">Status: Idle</p>
-            <p className="text-sm">Battery: N/A</p>
-            <button className="mt-2 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">Details</button>
-          </div>
+          {robots.map((robot) => (
+            <div key={robot.id} className="bg-white shadow rounded-xl p-4">
+              <input
+                type="text"
+                value={robot.name}
+                onChange={(e) => updateRobotName(robot.id, e.target.value)}
+                className="text-lg font-semibold mb-1 w-full border-b"
+              />
+              <p className="text-sm text-gray-600">Type: {robot.type}</p>
+              <p className="text-sm text-green-600">Status: {robot.status}</p>
+              <p className="text-sm">Battery: {robot.battery ?? "N/A"}%</p>
+              <div className="flex justify-end">
+                <button
+                  onClick={() => deleteRobot(robot.id)}
+                  className="mt-2 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       </main>
     </div>
