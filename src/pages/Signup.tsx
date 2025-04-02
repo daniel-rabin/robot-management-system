@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebase";
 import { useNavigate } from "react-router-dom";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "../firebase"; // Ensure your firebase.ts exports db
 
 export default function Signup() {
   const [email, setEmail] = useState("");
@@ -11,7 +13,23 @@ export default function Signup() {
 
   const handleSignup = async () => {
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      const user = userCredential.user;
+
+      // Store user data in Firestore
+      await setDoc(doc(db, "users", user.uid), {
+        email: user.email,
+        createdAt: serverTimestamp(),
+        role: "user",
+        settings: {
+          notificationsEnabled: true,
+        },
+      });
+
       navigate("/");
     } catch (err: any) {
       setError(err.message);
