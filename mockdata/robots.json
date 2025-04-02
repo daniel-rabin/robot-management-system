@@ -1,0 +1,20 @@
+[
+  {
+    "id": "robot-001",
+    "name": "Drone Alpha",
+    "type": "drone",
+    "status": "connected",
+    "battery": 89,
+    "location": { "x": 5.2, "y": 3.7 },
+    "lastUpdate": "2025-04-02T14:00:00Z"
+  },
+  {
+    "id": "robot-002",
+    "name": "Robotic Arm 1",
+    "type": "arm",
+    "status": "idle",
+    "battery": null,
+    "location": { "x": 0.0, "y": 0.0 },
+    "lastUpdate": "2025-04-02T14:02:00Z"
+  }
+]
