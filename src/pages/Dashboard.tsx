@@ -73,6 +73,13 @@ export default function Dashboard() {
     setSelectedRobot({ ...selectedRobot, [field]: value });
   };
 
+  // ✅ New quick status summary
+  const robotCount = robots.length;
+  const statusMessage =
+    robotCount > 0 ? "All systems nominal" : "No bots connected";
+  const [warnings, setWarnings] = useState<string[]>([]);
+  const notifications = 1; // placeholder
+
   return (
     <div className="flex min-h-screen">
       <aside className="w-64 bg-gray-800 text-white p-4 space-y-4">
@@ -98,6 +105,23 @@ export default function Dashboard() {
       </aside>
 
       <main className="flex-1 p-6 bg-gray-100 relative">
+        {/* ✅ New welcome + system status section */}
+        <div className="bg-white p-4 rounded-xl shadow mb-6">
+          <h2 className="text-lg font-semibold text-gray-700">
+            Welcome,{" "}
+            <span className="text-blue-600">{user?.email || "Operator"}</span>
+          </h2>
+          <p className="text-sm text-gray-600 mt-1">
+            {statusMessage} • {notifications} notification
+            {notifications !== 1 ? "s" : ""} • {warnings} warning
+            {warnings.length > 0 && (
+              <p className="text-red-500">
+                {warnings.length} warning{warnings.length !== 1 ? "s" : ""}
+              </p>
+            )}
+          </p>
+        </div>
+
         <h2 className="text-2xl font-semibold mb-4">Connected Robots</h2>
         <button
           onClick={handleCreateClick}
