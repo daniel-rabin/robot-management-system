@@ -1,5 +1,5 @@
 // src/pages/Dashboard.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import {
   getRobots,
@@ -11,6 +11,12 @@ import { RobotDetailsPane } from "../components/RobotDetailsPane";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { FiSettings } from "react-icons/fi";
+import {
+  DragDropContext,
+  Droppable,
+  Draggable,
+  DropResult,
+} from "react-beautiful-dnd";
 
 interface Robot {
   id?: string;
@@ -31,6 +37,7 @@ export default function Dashboard() {
   const [mode, setMode] = useState<"view" | "create">("create");
   const [userFirstName, setUserFirstName] = useState<string | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let timeout: NodeJS.Timeout;
@@ -57,7 +64,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (user?.uid) {
-      getRobots(user.uid).then(setRobots);
+      getRobots(user.uid).then((data) => setRobots(data as Robot[]));
       const fetchUserName = async () => {
         const userDoc = await getDoc(doc(db, "users", user.uid));
         if (userDoc.exists()) {
@@ -94,6 +101,23 @@ export default function Dashboard() {
     }
   }, [user]);
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowDropdown(false);
+      }
+    };
+    if (showDropdown) {
+      document.addEventListener("mousedown", handleClickOutside);
+    } else {
+      document.removeEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showDropdown]);
+
   const handleCreateClick = () => {
     setSelectedRobot({
       name: "",
@@ -113,7 +137,7 @@ export default function Dashboard() {
       await updateRobot(user.uid, selectedRobot.id, selectedRobot);
     }
     const updated = await getRobots(user.uid);
-    setRobots(updated);
+    setRobots(updated as Robot[]);
     setPaneOpen(false);
   };
 
@@ -134,22 +158,30 @@ export default function Dashboard() {
     setSelectedRobot({ ...selectedRobot, [field]: value });
   };
 
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+    const reordered = Array.from(robots);
+    const [moved] = reordered.splice(result.source.index, 1);
+    reordered.splice(result.destination.index, 0, moved);
+    setRobots(reordered);
+  };
+
   return (
     <div className="flex min-h-screen">
       <aside className="w-64 bg-gray-800 text-white p-4 flex flex-col justify-between">
         <div>
           <h1 className="text-2xl font-bold mb-6">Robodyne</h1>
           <nav className="space-y-2">
-            {["Dashboard", "Robots", "Code", "Control", "Planner", "Logs"].map(
-              (tab) => (
+            {"Dashboard Robots Code Control Planner Logs"
+              .split(" ")
+              .map((tab) => (
                 <button
                   key={tab}
                   className="block w-full text-left hover:bg-gray-700 p-2 rounded"
                 >
                   {tab}
                 </button>
-              )
-            )}
+              ))}
           </nav>
         </div>
         <button className="block w-full text-left hover:bg-gray-700 p-2 rounded">
@@ -157,8 +189,7 @@ export default function Dashboard() {
         </button>
       </aside>
 
-      <main className="flex-1 p-6 bg-gray-100 relative">
-        {/* Welcome + system status section */}
+      <main className="flex-1 p-6 bg-gray-100 relative overflow-x-hidden">
         <div className="bg-white p-4 rounded-xl shadow mb-6 flex justify-between items-start">
           <div>
             <h2 className="text-lg font-semibold text-gray-700">
@@ -171,15 +202,16 @@ export default function Dashboard() {
               All systems nominal • 1 notification • warning
             </p>
           </div>
-          <div className="relative">
+          <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setShowDropdown(!showDropdown)}
-              className="p-2 rounded-full hover:bg-gray-200"
+              className="flex items-center gap-2 p-2 border rounded-md hover:bg-gray-200"
             >
-              <FiSettings size={20} />
+              <span className="text-sm font-medium">Account Settings</span>
+              <FiSettings size={18} />
             </button>
             {showDropdown && (
-              <div className="absolute right-0 mt-2 w-48 bg-white border rounded shadow z-10">
+              <div className="absolute right-0 mt-2 w-56 bg-white border rounded shadow z-10">
                 <div className="px-4 py-2 font-semibold text-gray-800 border-b">
                   {userFirstName}
                 </div>
@@ -206,30 +238,62 @@ export default function Dashboard() {
           Create New Bot
         </button>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {robots.map((robot) => (
-            <div key={robot.id} className="bg-white shadow rounded-xl p-4">
-              <h3 className="text-lg font-semibold mb-1">{robot.name}</h3>
-              <p className="text-sm text-gray-600">Type: {robot.type}</p>
-              <p className="text-sm text-green-600">Status: {robot.status}</p>
-              <p className="text-sm">Battery: {robot.battery ?? "N/A"}%</p>
-              <div className="flex justify-between mt-2">
-                <button
-                  onClick={() => handleEdit(robot)}
-                  className="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600"
-                >
-                  View
-                </button>
-                <button
-                  onClick={() => handleDelete(robot.id!)}
-                  className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-                >
-                  Delete
-                </button>
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <Droppable droppableId="robots" direction="horizontal">
+            {(provided) => (
+              <div
+                className="flex flex-wrap gap-4 overflow-x-hidden"
+                {...provided.droppableProps}
+                ref={provided.innerRef}
+              >
+                {robots.map((robot, index) => (
+                  <Draggable
+                    key={robot.id}
+                    draggableId={robot.id!}
+                    index={index}
+                  >
+                    {(provided) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        {...provided.dragHandleProps}
+                        className="bg-white shadow rounded-xl p-4 w-80"
+                      >
+                        <h3 className="text-lg font-semibold mb-1">
+                          {robot.name}
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          Type: {robot.type}
+                        </p>
+                        <p className="text-sm text-green-600">
+                          Status: {robot.status}
+                        </p>
+                        <p className="text-sm">
+                          Battery: {robot.battery ?? "N/A"}%
+                        </p>
+                        <div className="flex justify-between mt-2">
+                          <button
+                            onClick={() => handleEdit(robot)}
+                            className="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+                          >
+                            View
+                          </button>
+                          <button
+                            onClick={() => handleDelete(robot.id!)}
+                            className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
               </div>
-            </div>
-          ))}
-        </div>
+            )}
+          </Droppable>
+        </DragDropContext>
 
         <RobotDetailsPane
           isOpen={paneOpen}
