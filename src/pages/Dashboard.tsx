@@ -33,6 +33,29 @@ export default function Dashboard() {
   const [showDropdown, setShowDropdown] = useState(false);
 
   useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    const AUTO_LOGOUT_TIME = 15 * 60 * 1000;
+
+    const resetTimer = () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        logout();
+        alert("You've been logged out due to inactivity.");
+      }, AUTO_LOGOUT_TIME);
+    };
+
+    const events = ["mousemove", "keydown", "click", "scroll"];
+    events.forEach((event) => window.addEventListener(event, resetTimer));
+
+    resetTimer();
+
+    return () => {
+      clearTimeout(timeout);
+      events.forEach((event) => window.removeEventListener(event, resetTimer));
+    };
+  }, [logout]);
+
+  useEffect(() => {
     if (user?.uid) {
       getRobots(user.uid).then(setRobots);
       const fetchUserName = async () => {
@@ -52,6 +75,22 @@ export default function Dashboard() {
         }
       };
       fetchUserName();
+    }
+  }, [user]);
+
+  useEffect(() => {
+    const savePath = () =>
+      localStorage.setItem("lastVisited", window.location.pathname);
+    window.addEventListener("beforeunload", savePath);
+    return () => window.removeEventListener("beforeunload", savePath);
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      const lastPath = localStorage.getItem("lastVisited");
+      if (lastPath) {
+        window.history.replaceState(null, "", lastPath);
+      }
     }
   }, [user]);
 
