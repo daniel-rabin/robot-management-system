@@ -8,6 +8,9 @@ import {
   deleteRobot,
 } from "../utils/firestoreHelpers";
 import { RobotDetailsPane } from "../components/RobotDetailsPane";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../firebase";
+import { FiSettings } from "react-icons/fi";
 
 interface Robot {
   id?: string;
@@ -21,15 +24,34 @@ interface Robot {
 }
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [robots, setRobots] = useState<Robot[]>([]);
   const [paneOpen, setPaneOpen] = useState(false);
   const [selectedRobot, setSelectedRobot] = useState<Robot | null>(null);
   const [mode, setMode] = useState<"view" | "create">("create");
+  const [userFirstName, setUserFirstName] = useState<string | null>(null);
+  const [showDropdown, setShowDropdown] = useState(false);
 
   useEffect(() => {
     if (user?.uid) {
       getRobots(user.uid).then(setRobots);
+      const fetchUserName = async () => {
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          const name = data?.profile?.firstName || null;
+          if (name && typeof name === "string") {
+            const formatted =
+              name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+            setUserFirstName(formatted);
+          } else {
+            setUserFirstName(null);
+          }
+        } else {
+          setUserFirstName(null);
+        }
+      };
+      fetchUserName();
     }
   }, [user]);
 
@@ -73,53 +95,68 @@ export default function Dashboard() {
     setSelectedRobot({ ...selectedRobot, [field]: value });
   };
 
-  // ✅ New quick status summary
-  const robotCount = robots.length;
-  const statusMessage =
-    robotCount > 0 ? "All systems nominal" : "No bots connected";
-  const [warnings, setWarnings] = useState<string[]>([]);
-  const notifications = 1; // placeholder
-
   return (
     <div className="flex min-h-screen">
-      <aside className="w-64 bg-gray-800 text-white p-4 space-y-4">
-        <h1 className="text-2xl font-bold mb-6">Robodyne</h1>
-        <nav className="space-y-2">
-          {[
-            "Dashboard",
-            "Robots",
-            "Code",
-            "Control",
-            "Planner",
-            "Logs",
-            "Settings",
-          ].map((tab) => (
-            <button
-              key={tab}
-              className="block w-full text-left hover:bg-gray-700 p-2 rounded"
-            >
-              {tab}
-            </button>
-          ))}
-        </nav>
+      <aside className="w-64 bg-gray-800 text-white p-4 flex flex-col justify-between">
+        <div>
+          <h1 className="text-2xl font-bold mb-6">Robodyne</h1>
+          <nav className="space-y-2">
+            {["Dashboard", "Robots", "Code", "Control", "Planner", "Logs"].map(
+              (tab) => (
+                <button
+                  key={tab}
+                  className="block w-full text-left hover:bg-gray-700 p-2 rounded"
+                >
+                  {tab}
+                </button>
+              )
+            )}
+          </nav>
+        </div>
+        <button className="block w-full text-left hover:bg-gray-700 p-2 rounded">
+          Settings
+        </button>
       </aside>
 
       <main className="flex-1 p-6 bg-gray-100 relative">
-        {/* ✅ New welcome + system status section */}
-        <div className="bg-white p-4 rounded-xl shadow mb-6">
-          <h2 className="text-lg font-semibold text-gray-700">
-            Welcome,{" "}
-            <span className="text-blue-600">{user?.email || "Operator"}</span>
-          </h2>
-          <p className="text-sm text-gray-600 mt-1">
-            {statusMessage} • {notifications} notification
-            {notifications !== 1 ? "s" : ""} • {warnings} warning
-            {warnings.length > 0 && (
-              <p className="text-red-500">
-                {warnings.length} warning{warnings.length !== 1 ? "s" : ""}
-              </p>
+        {/* Welcome + system status section */}
+        <div className="bg-white p-4 rounded-xl shadow mb-6 flex justify-between items-start">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-700">
+              Welcome,{" "}
+              <span className="text-blue-600">
+                {userFirstName || user?.email || "Operator"}
+              </span>
+            </h2>
+            <p className="text-sm text-gray-600 mt-1">
+              All systems nominal • 1 notification • warning
+            </p>
+          </div>
+          <div className="relative">
+            <button
+              onClick={() => setShowDropdown(!showDropdown)}
+              className="p-2 rounded-full hover:bg-gray-200"
+            >
+              <FiSettings size={20} />
+            </button>
+            {showDropdown && (
+              <div className="absolute right-0 mt-2 w-48 bg-white border rounded shadow z-10">
+                <div className="px-4 py-2 font-semibold text-gray-800 border-b">
+                  {userFirstName}
+                </div>
+                <button className="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm">
+                  Account Settings
+                </button>
+                <div className="border-t my-1"></div>
+                <button
+                  onClick={logout}
+                  className="w-full text-left px-4 py-2 text-red-600 hover:bg-red-100 text-sm"
+                >
+                  Logout
+                </button>
+              </div>
             )}
-          </p>
+          </div>
         </div>
 
         <h2 className="text-2xl font-semibold mb-4">Connected Robots</h2>

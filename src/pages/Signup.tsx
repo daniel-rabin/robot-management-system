@@ -1,16 +1,24 @@
-// File: src/pages/Signup.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../firebase";
+import { auth, db } from "../firebase";
 import { useNavigate, Link } from "react-router-dom";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "../firebase";
 
 export default function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [dob, setDob] = useState("");
+  const [userType, setUserType] = useState("individual");
+  const [isStudent, setIsStudent] = useState("no");
+  const [studentOf, setStudentOf] = useState("");
+  const [organizationName, setOrganizationName] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
+
+  const capitalize = (s: string) =>
+    s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 
   const handleSignup = async () => {
     try {
@@ -21,13 +29,29 @@ export default function Signup() {
       );
       const user = userCredential.user;
 
-      await setDoc(doc(db, "users", user.uid), {
+      const userData: any = {
         email: user.email,
         createdAt: serverTimestamp(),
         role: "user",
-        settings: { notificationsEnabled: true },
-      });
+        settings: {
+          notificationsEnabled: true,
+        },
+        profile: {
+          firstName: capitalize(firstName),
+          lastName: capitalize(lastName),
+          dob,
+          userType,
+        },
+      };
 
+      if (userType === "individual") {
+        userData.profile.isStudent = isStudent;
+        if (isStudent === "yes") userData.profile.studentOf = studentOf;
+      } else if (userType === "organization") {
+        userData.profile.organizationName = organizationName;
+      }
+
+      await setDoc(doc(db, "users", user.uid), userData);
       navigate("/");
     } catch (err: any) {
       setError(err.message);
@@ -40,41 +64,114 @@ export default function Signup() {
 
   return (
     <div className="flex items-center justify-center h-screen bg-gray-100">
-      <div className="bg-white p-6 rounded shadow w-full max-w-sm text-center">
+      <div className="bg-white p-6 rounded shadow w-full max-w-md text-center">
         <img
           src="/robodyne-logo.png"
           alt="Robodyne Logo"
           className="w-28 mx-auto mb-4"
         />
-
         <h2 className="text-xl font-bold mb-4">Sign Up for Robodyne</h2>
-        <input
-          type="email"
-          placeholder="Email"
-          className="w-full p-2 border rounded mb-2"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          onKeyDown={handleKeyDown}
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          className="w-full p-2 border rounded mb-4"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          onKeyDown={handleKeyDown}
-        />
-        {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
+
+        <div className="grid grid-cols-1 gap-2">
+          <input
+            type="text"
+            placeholder="First Name"
+            className="w-full p-2 border rounded"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+          <input
+            type="text"
+            placeholder="Last Name"
+            className="w-full p-2 border rounded"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+          <input
+            type="date"
+            placeholder="Date of Birth"
+            className="w-full p-2 border rounded"
+            value={dob}
+            onChange={(e) => setDob(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+          <select
+            className="w-full p-2 border rounded"
+            value={userType}
+            onChange={(e) => setUserType(e.target.value)}
+          >
+            <option value="individual">Individual</option>
+            <option value="organization">Organization</option>
+          </select>
+
+          {userType === "individual" && (
+            <>
+              <label className="text-sm text-left">Are you a student?</label>
+              <select
+                className="w-full p-2 border rounded"
+                value={isStudent}
+                onChange={(e) => setIsStudent(e.target.value)}
+              >
+                <option value="no">No</option>
+                <option value="yes">Yes</option>
+              </select>
+              {isStudent === "yes" && (
+                <input
+                  type="text"
+                  placeholder="Student of (e.g. University)"
+                  className="w-full p-2 border rounded"
+                  value={studentOf}
+                  onChange={(e) => setStudentOf(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                />
+              )}
+            </>
+          )}
+
+          {userType === "organization" && (
+            <input
+              type="text"
+              placeholder="Organization Name"
+              className="w-full p-2 border rounded"
+              value={organizationName}
+              onChange={(e) => setOrganizationName(e.target.value)}
+              onKeyDown={handleKeyDown}
+            />
+          )}
+
+          <input
+            type="email"
+            placeholder="Email"
+            className="w-full p-2 border rounded"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            className="w-full p-2 border rounded"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
+        </div>
+
+        {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
+
         <button
           onClick={handleSignup}
-          className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
+          className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 mt-4"
         >
           Sign Up
         </button>
+
         <p className="mt-4 text-sm">
           Already have an account?{" "}
           <Link to="/login" className="text-blue-600 hover:underline">
-            Log in here
+            Login here
           </Link>
         </p>
       </div>
