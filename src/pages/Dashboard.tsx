@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+// src/pages/Dashboard.tsx
+import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import {
   getRobots,
@@ -6,59 +7,70 @@ import {
   updateRobot,
   deleteRobot,
 } from "../utils/firestoreHelpers";
+import { RobotDetailsPane } from "../components/RobotDetailsPane";
 
 interface Robot {
-  id: string;
+  id?: string;
   name: string;
   type: string;
   status: string;
   battery: number | null;
+  description?: string;
+  serialNumber?: string;
+  connectionProtocol?: string;
 }
 
 export default function Dashboard() {
   const { user } = useAuth();
   const [robots, setRobots] = useState<Robot[]>([]);
-  const [newName, setNewName] = useState("");
-  const [newType, setNewType] = useState("drone");
+  const [paneOpen, setPaneOpen] = useState(false);
+  const [selectedRobot, setSelectedRobot] = useState<Robot | null>(null);
+  const [mode, setMode] = useState<"view" | "create">("create");
 
-  // Load user-specific robots
   useEffect(() => {
-    const loadRobots = async () => {
-      if (user?.uid) {
-        const userRobots = await getRobots(user.uid);
-        setRobots(userRobots);
-      }
-    };
-    loadRobots();
+    if (user?.uid) {
+      getRobots(user.uid).then(setRobots);
+    }
   }, [user]);
 
-  const handleAddRobot = async () => {
-    if (!user?.uid) return;
-    const robot: Omit<Robot, "id"> = {
-      name: newName || `Robot ${robots.length + 1}`,
-      type: newType,
+  const handleCreateClick = () => {
+    setSelectedRobot({
+      name: "",
+      type: "drone",
       status: "idle",
       battery: Math.floor(Math.random() * 100),
-    };
-    await addRobot(user.uid, robot);
+    });
+    setMode("create");
+    setPaneOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!user?.uid || !selectedRobot) return;
+    if (mode === "create") {
+      await addRobot(user.uid, selectedRobot);
+    } else if (selectedRobot.id) {
+      await updateRobot(user.uid, selectedRobot.id, selectedRobot);
+    }
     const updated = await getRobots(user.uid);
     setRobots(updated);
-    setNewName("");
-    setNewType("drone");
+    setPaneOpen(false);
   };
 
   const handleDelete = async (id: string) => {
     if (!user?.uid) return;
     await deleteRobot(user.uid, id);
-    const updated = await getRobots(user.uid);
-    setRobots(updated);
+    setRobots((prev) => prev.filter((r) => r.id !== id));
   };
 
-  const handleNameChange = async (id: string, name: string) => {
-    if (!user?.uid) return;
-    await updateRobot(user.uid, id, { name });
-    const updated = await getRobots(user.uid);
-    setRobots(updated);
+  const handleEdit = (robot: Robot) => {
+    setSelectedRobot(robot);
+    setMode("view");
+    setPaneOpen(true);
+  };
+
+  const handleFieldChange = (field: string, value: any) => {
+    if (!selectedRobot) return;
+    setSelectedRobot({ ...selectedRobot, [field]: value });
   };
 
   return (
@@ -85,52 +97,32 @@ export default function Dashboard() {
         </nav>
       </aside>
 
-      <main className="flex-1 p-6 bg-gray-100">
+      <main className="flex-1 p-6 bg-gray-100 relative">
         <h2 className="text-2xl font-semibold mb-4">Connected Robots</h2>
-
-        <div className="flex gap-2 mb-4">
-          <input
-            type="text"
-            placeholder="Robot name"
-            className="p-2 border rounded w-full"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-          />
-          <select
-            value={newType}
-            onChange={(e) => setNewType(e.target.value)}
-            className="p-2 border rounded"
-          >
-            <option value="drone">Drone</option>
-            <option value="arm">Arm</option>
-            <option value="humanoid">Humanoid</option>
-            <option value="vacuum">Vacuum</option>
-            <option value="uav">UAV</option>
-          </select>
-          <button
-            onClick={handleAddRobot}
-            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-          >
-            Add
-          </button>
-        </div>
+        <button
+          onClick={handleCreateClick}
+          className="mb-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          Create New Bot
+        </button>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {robots.map((robot) => (
             <div key={robot.id} className="bg-white shadow rounded-xl p-4">
-              <input
-                type="text"
-                value={robot.name}
-                onChange={(e) => handleNameChange(robot.id, e.target.value)}
-                className="text-lg font-semibold mb-1 w-full border-b"
-              />
+              <h3 className="text-lg font-semibold mb-1">{robot.name}</h3>
               <p className="text-sm text-gray-600">Type: {robot.type}</p>
               <p className="text-sm text-green-600">Status: {robot.status}</p>
               <p className="text-sm">Battery: {robot.battery ?? "N/A"}%</p>
-              <div className="flex justify-end">
+              <div className="flex justify-between mt-2">
                 <button
-                  onClick={() => handleDelete(robot.id)}
-                  className="mt-2 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                  onClick={() => handleEdit(robot)}
+                  className="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+                >
+                  View
+                </button>
+                <button
+                  onClick={() => handleDelete(robot.id!)}
+                  className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
                 >
                   Delete
                 </button>
@@ -138,6 +130,15 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
+
+        <RobotDetailsPane
+          isOpen={paneOpen}
+          onClose={() => setPaneOpen(false)}
+          robot={selectedRobot || {}}
+          onChange={handleFieldChange}
+          onSave={handleSave}
+          mode={mode}
+        />
       </main>
     </div>
   );
