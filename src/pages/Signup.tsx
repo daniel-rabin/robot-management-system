@@ -42,10 +42,11 @@ export default function Signup() {
     <div className="flex items-center justify-center h-screen bg-gray-100">
       <div className="bg-white p-6 rounded shadow w-full max-w-sm text-center">
         <img
-          src="/logo192.png"
+          src="/robodyne-logo.png"
           alt="Robodyne Logo"
-          className="w-16 mx-auto mb-4"
+          className="w-28 mx-auto mb-4"
         />
+
         <h2 className="text-xl font-bold mb-4">Sign Up for Robodyne</h2>
         <input
           type="email"
