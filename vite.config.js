@@ -6,6 +6,7 @@ export default {
     port: 5173,
     allowedHosts: [
       "f2mhjr-5173.csb.app", // Your unique CodeSandbox hostname
+      "mf8z2v-5173.csb.app",
     ],
   },
 };

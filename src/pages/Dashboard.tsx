@@ -1,4 +1,11 @@
 import React, { useEffect, useState } from "react";
+import { useAuth } from "../context/AuthContext";
+import {
+  getRobots,
+  addRobot,
+  updateRobot,
+  deleteRobot,
+} from "../utils/firestoreHelpers";
 
 interface Robot {
   id: string;
@@ -9,40 +16,49 @@ interface Robot {
 }
 
 export default function Dashboard() {
+  const { user } = useAuth();
   const [robots, setRobots] = useState<Robot[]>([]);
   const [newName, setNewName] = useState("");
   const [newType, setNewType] = useState("drone");
 
+  // Load user-specific robots
   useEffect(() => {
-    const stored = localStorage.getItem("robots");
-    if (stored) {
-      setRobots(JSON.parse(stored));
-    }
-  }, []);
+    const loadRobots = async () => {
+      if (user?.uid) {
+        const userRobots = await getRobots(user.uid);
+        setRobots(userRobots);
+      }
+    };
+    loadRobots();
+  }, [user]);
 
-  useEffect(() => {
-    localStorage.setItem("robots", JSON.stringify(robots));
-  }, [robots]);
-
-  const addRobot = () => {
-    const newRobot: Robot = {
-      id: crypto.randomUUID(),
+  const handleAddRobot = async () => {
+    if (!user?.uid) return;
+    const robot: Omit<Robot, "id"> = {
       name: newName || `Robot ${robots.length + 1}`,
       type: newType,
       status: "idle",
       battery: Math.floor(Math.random() * 100),
     };
-    setRobots([...robots, newRobot]);
+    await addRobot(user.uid, robot);
+    const updated = await getRobots(user.uid);
+    setRobots(updated);
     setNewName("");
     setNewType("drone");
   };
 
-  const deleteRobot = (id: string) => {
-    setRobots(robots.filter((r) => r.id !== id));
+  const handleDelete = async (id: string) => {
+    if (!user?.uid) return;
+    await deleteRobot(user.uid, id);
+    const updated = await getRobots(user.uid);
+    setRobots(updated);
   };
 
-  const updateRobotName = (id: string, name: string) => {
-    setRobots(robots.map((r) => (r.id === id ? { ...r, name } : r)));
+  const handleNameChange = async (id: string, name: string) => {
+    if (!user?.uid) return;
+    await updateRobot(user.uid, id, { name });
+    const updated = await getRobots(user.uid);
+    setRobots(updated);
   };
 
   return (
@@ -92,7 +108,7 @@ export default function Dashboard() {
             <option value="uav">UAV</option>
           </select>
           <button
-            onClick={addRobot}
+            onClick={handleAddRobot}
             className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
           >
             Add
@@ -105,7 +121,7 @@ export default function Dashboard() {
               <input
                 type="text"
                 value={robot.name}
-                onChange={(e) => updateRobotName(robot.id, e.target.value)}
+                onChange={(e) => handleNameChange(robot.id, e.target.value)}
                 className="text-lg font-semibold mb-1 w-full border-b"
               />
               <p className="text-sm text-gray-600">Type: {robot.type}</p>
@@ -113,7 +129,7 @@ export default function Dashboard() {
               <p className="text-sm">Battery: {robot.battery ?? "N/A"}%</p>
               <div className="flex justify-end">
                 <button
-                  onClick={() => deleteRobot(robot.id)}
+                  onClick={() => handleDelete(robot.id)}
                   className="mt-2 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
                 >
                   Delete
