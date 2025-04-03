@@ -116,7 +116,7 @@ export default function Dashboard() {
           <div className="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 animate-spin border-t-blue-500"></div>
         </div>
       ) : (
-        <>
+        <div className="h-[calc(100vh-5rem)] flex flex-col overflow-hidden">
           <div className="bg-white p-4 rounded-xl shadow mb-6">
             <h2 className="text-lg font-semibold text-gray-700">
               Welcome,{" "}
@@ -137,62 +137,64 @@ export default function Dashboard() {
             Create New Bot
           </button>
 
-          <DragDropContext onDragEnd={handleDragEnd}>
-            <Droppable droppableId="robots" direction="horizontal">
-              {(provided) => (
-                <div
-                  className="flex flex-wrap gap-4 overflow-x-hidden"
-                  {...provided.droppableProps}
-                  ref={provided.innerRef}
-                >
-                  {robots.map((robot, index) => (
-                    <Draggable
-                      key={robot.id}
-                      draggableId={robot.id!}
-                      index={index}
-                    >
-                      {(provided) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          {...provided.dragHandleProps}
-                          className="bg-white shadow rounded-xl p-4 w-80"
-                        >
-                          <h3 className="text-lg font-semibold mb-1">
-                            {robot.name}
-                          </h3>
-                          <p className="text-sm text-gray-600">
-                            Type: {robot.type}
-                          </p>
-                          <p className="text-sm text-green-600">
-                            Status: {robot.status}
-                          </p>
-                          <p className="text-sm">
-                            Battery: {robot.battery ?? "N/A"}%
-                          </p>
-                          <div className="flex justify-between mt-2">
-                            <button
-                              onClick={() => handleEdit(robot)}
-                              className="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600"
-                            >
-                              View
-                            </button>
-                            <button
-                              onClick={() => handleDelete(robot.id!)}
-                              className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-                            >
-                              Delete
-                            </button>
+          <div className="overflow-y-auto pr-2">
+            <DragDropContext onDragEnd={handleDragEnd}>
+              <Droppable droppableId="robots" direction="horizontal">
+                {(provided) => (
+                  <div
+                    className="flex flex-wrap gap-4"
+                    {...provided.droppableProps}
+                    ref={provided.innerRef}
+                  >
+                    {robots.map((robot, index) => (
+                      <Draggable
+                        key={robot.id}
+                        draggableId={robot.id!}
+                        index={index}
+                      >
+                        {(provided) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                            className="bg-white shadow rounded-xl p-4 w-80"
+                          >
+                            <h3 className="text-lg font-semibold mb-1">
+                              {robot.name}
+                            </h3>
+                            <p className="text-sm text-gray-600">
+                              Type: {robot.type}
+                            </p>
+                            <p className="text-sm text-green-600">
+                              Status: {robot.status}
+                            </p>
+                            <p className="text-sm">
+                              Battery: {robot.battery ?? "N/A"}%
+                            </p>
+                            <div className="flex justify-between mt-2">
+                              <button
+                                onClick={() => handleEdit(robot)}
+                                className="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+                              >
+                                View
+                              </button>
+                              <button
+                                onClick={() => handleDelete(robot.id!)}
+                                className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                              >
+                                Delete
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </Draggable>
-                  ))}
-                  {provided.placeholder}
-                </div>
-              )}
-            </Droppable>
-          </DragDropContext>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
+            </DragDropContext>
+          </div>
 
           <RobotDetailsPane
             isOpen={paneOpen}
@@ -202,7 +204,7 @@ export default function Dashboard() {
             onSave={handleSave}
             mode={mode}
           />
-        </>
+        </div>
       )}
     </SidebarLayout>
   );
