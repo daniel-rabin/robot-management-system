@@ -7,6 +7,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Account from "./pages/Account";
 import Settings from "./pages/Settings";
+import Robots from "./pages/Robots";
 import "./styles/index.css";
 
 function App() {
@@ -37,6 +38,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Settings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/robots"
+            element={
+              <ProtectedRoute>
+                <Robots />
               </ProtectedRoute>
             }
           />
