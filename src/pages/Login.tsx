@@ -1,4 +1,3 @@
-// File: src/pages/Login.tsx
 import React, { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebase";
@@ -8,14 +7,20 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async () => {
+    setLoading(true);
+    setError("");
+
     try {
       await signInWithEmailAndPassword(auth, email, password);
       navigate("/");
     } catch (err: any) {
       setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -39,6 +44,7 @@ export default function Login() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           onKeyDown={handleKeyDown}
+          disabled={loading}
         />
         <input
           type="password"
@@ -47,14 +53,29 @@ export default function Login() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           onKeyDown={handleKeyDown}
+          disabled={loading}
         />
         {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
+
         <button
           onClick={handleLogin}
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+          disabled={loading}
+          className={`w-full py-2 rounded text-white ${
+            loading
+              ? "bg-blue-400 cursor-not-allowed"
+              : "bg-blue-600 hover:bg-blue-700"
+          }`}
         >
-          Login
+          {loading ? (
+            <span className="flex justify-center items-center gap-2">
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              Logging in...
+            </span>
+          ) : (
+            "Login"
+          )}
         </button>
+
         <p className="mt-4 text-sm">
           Don’t have an account?{" "}
           <Link to="/signup" className="text-blue-600 hover:underline">

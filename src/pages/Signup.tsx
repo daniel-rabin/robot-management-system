@@ -15,12 +15,16 @@ export default function Signup() {
   const [studentOf, setStudentOf] = useState("");
   const [organizationName, setOrganizationName] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const capitalize = (s: string) =>
     s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 
   const handleSignup = async () => {
+    setLoading(true);
+    setError("");
+
     try {
       const userCredential = await createUserWithEmailAndPassword(
         auth,
@@ -55,6 +59,8 @@ export default function Signup() {
       navigate("/");
     } catch (err: any) {
       setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -80,6 +86,7 @@ export default function Signup() {
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
             onKeyDown={handleKeyDown}
+            disabled={loading}
           />
           <input
             type="text"
@@ -88,6 +95,7 @@ export default function Signup() {
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
             onKeyDown={handleKeyDown}
+            disabled={loading}
           />
           <input
             type="date"
@@ -96,11 +104,13 @@ export default function Signup() {
             value={dob}
             onChange={(e) => setDob(e.target.value)}
             onKeyDown={handleKeyDown}
+            disabled={loading}
           />
           <select
             className="w-full p-2 border rounded"
             value={userType}
             onChange={(e) => setUserType(e.target.value)}
+            disabled={loading}
           >
             <option value="individual">Individual</option>
             <option value="organization">Organization</option>
@@ -113,6 +123,7 @@ export default function Signup() {
                 className="w-full p-2 border rounded"
                 value={isStudent}
                 onChange={(e) => setIsStudent(e.target.value)}
+                disabled={loading}
               >
                 <option value="no">No</option>
                 <option value="yes">Yes</option>
@@ -125,6 +136,7 @@ export default function Signup() {
                   value={studentOf}
                   onChange={(e) => setStudentOf(e.target.value)}
                   onKeyDown={handleKeyDown}
+                  disabled={loading}
                 />
               )}
             </>
@@ -138,6 +150,7 @@ export default function Signup() {
               value={organizationName}
               onChange={(e) => setOrganizationName(e.target.value)}
               onKeyDown={handleKeyDown}
+              disabled={loading}
             />
           )}
 
@@ -148,6 +161,7 @@ export default function Signup() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             onKeyDown={handleKeyDown}
+            disabled={loading}
           />
           <input
             type="password"
@@ -156,6 +170,7 @@ export default function Signup() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             onKeyDown={handleKeyDown}
+            disabled={loading}
           />
         </div>
 
@@ -163,9 +178,21 @@ export default function Signup() {
 
         <button
           onClick={handleSignup}
-          className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 mt-4"
+          disabled={loading}
+          className={`w-full mt-4 py-2 rounded text-white ${
+            loading
+              ? "bg-green-400 cursor-not-allowed"
+              : "bg-green-600 hover:bg-green-700"
+          }`}
         >
-          Sign Up
+          {loading ? (
+            <span className="flex justify-center items-center gap-2">
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              Creating Account...
+            </span>
+          ) : (
+            "Sign Up"
+          )}
         </button>
 
         <p className="mt-4 text-sm">
