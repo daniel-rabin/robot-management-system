@@ -8,6 +8,8 @@ import Signup from "./pages/Signup";
 import Account from "./pages/Account";
 import Settings from "./pages/Settings";
 import Robots from "./pages/Robots";
+import Planner from "./pages/Planner";
+import ProjectDesigner from "./pages/ProjectDesigner";
 import "./styles/index.css";
 
 function App() {
@@ -49,6 +51,15 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/planner"
+            element={
+              <ProtectedRoute>
+                <Planner />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/planner/project/:id" element={<ProjectDesigner />} />
         </Routes>
       </Router>
     </AuthProvider>
