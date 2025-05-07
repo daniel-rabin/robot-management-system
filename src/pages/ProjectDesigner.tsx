@@ -16,20 +16,37 @@ export default function ProjectDesigner() {
   const lastPos = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
-    const fetchRobots = async () => {
-      if (user?.uid) {
-        const data = await getRobots(user.uid);
-        setRobots(data);
-      }
+    const centerGridOnLoad = () => {
+      const canvasEl = canvasRef.current;
+      if (!canvasEl) return;
+
+      const rect = canvasEl.getBoundingClientRect();
+      const screenCenterX = rect.width / 2;
+      const screenCenterY = rect.height / 2;
+
+      const gridCenterX = gridSize / 2;
+      const gridCenterY = gridSize / 2;
+
+      // Center the grid so that (2500, 2500) appears in the center of the screen
+      setOffset({
+        x: screenCenterX - gridCenterX,
+        y: screenCenterY - gridCenterY,
+      });
     };
-    fetchRobots();
-  }, [user]);
+
+    // Defer execution to ensure DOM is ready
+    setTimeout(centerGridOnLoad, 0);
+  }, []);
 
   const handleMouseMove = (e) => {
     const rect = canvasRef.current.getBoundingClientRect();
-    const x = Math.floor(e.clientX - rect.left - rect.width / 2 - offset.x);
-    const y = Math.floor(e.clientY - rect.top - rect.height / 2 - offset.y);
-    setMouseCoords({ x, y });
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    const gridX = (mouseX - offset.x - gridSize / 2).toFixed(2);
+    const gridY = (mouseY - offset.y - gridSize / 2).toFixed(2);
+
+    setMouseCoords({ x: gridX, y: gridY });
 
     if (dragging) {
       const dx = e.clientX - lastPos.current.x;
@@ -38,6 +55,58 @@ export default function ProjectDesigner() {
       lastPos.current = { x: e.clientX, y: e.clientY };
     }
   };
+
+  const goToHome = () => {
+    const canvasEl = canvasRef.current;
+    if (!canvasEl) return;
+
+    const rect = canvasEl.getBoundingClientRect();
+    const screenCenterX = rect.width / 2;
+    const screenCenterY = rect.height / 2;
+
+    const gridCenterX = gridSize / 2;
+    const gridCenterY = gridSize / 2;
+
+    const targetOffset = {
+      x: screenCenterX - gridCenterX,
+      y: screenCenterY - gridCenterY,
+    };
+
+    // Smooth animation
+    const duration = 300; // milliseconds
+    const frames = 30;
+    const interval = duration / frames;
+    const dx = (targetOffset.x - offset.x) / frames;
+    const dy = (targetOffset.y - offset.y) / frames;
+
+    let frame = 0;
+    const animate = () => {
+      frame++;
+      setOffset((prev) => ({
+        x: prev.x + dx,
+        y: prev.y + dy,
+      }));
+      if (frame < frames) requestAnimationFrame(animate);
+    };
+
+    animate();
+  };
+
+  useEffect(() => {
+    const fetchRobots = async () => {
+      if (user?.uid) {
+        try {
+          const robotData = await getRobots(user.uid);
+          setRobots(robotData);
+        } catch (error) {
+          console.error("Error fetching robots:", error);
+        }
+      }
+    };
+  
+    fetchRobots();
+  }, [user]);
+  
 
   const startDrag = (e) => {
     setDragging(true);
@@ -156,7 +225,16 @@ export default function ProjectDesigner() {
 
       {/* Status Bar */}
       <div className="h-10 bg-gray-800 text-white text-sm px-4 flex items-center justify-between">
-        <span>Tool: Select</span>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={goToHome}
+            title="Return axis to origin"
+            className="hover:text-blue-400 transition"
+          >
+            🎯
+          </button>
+          <span>Tool: Select</span>
+        </div>
         <div className="flex items-center gap-4">
           <span className="text-gray-300">
             Mouse: x={mouseCoords.x}, y={mouseCoords.y}
